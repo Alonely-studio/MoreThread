@@ -1,0 +1,93 @@
+public class Practise03 {
+	/*
+	 * 3.模拟一个人生产50个玩具，每200毫秒生产一个，当生产到第20个时加入每秒吃1个馒头，共吃完3个后在接着生产的多线程。
+	 */
+	public static void main(String[] args) {
+		people p = new people();
+		product p1 = new product(p);
+		runeat e = new runeat(p);
+		Thread thread1 = new Thread(p1,"生产玩具");
+		Thread thread2 = new Thread(e,"吃包子");
+		thread1.start();
+		thread2.start();	
+	}
+
+}
+//创建一个类，模拟人的行为，生产玩具，吃包子
+class people{
+	private boolean flag = false;		//flag用来标识生产到了20个
+	
+	//生产玩具这个动作的方法
+	public synchronized void addPlayTool() {
+		for(int i = 0;i < 50;) {
+			i++;
+			System.out.println(Thread.currentThread().getName()+"========>"+"生产的玩具"+"=====>"+i);
+			try {
+				Thread.currentThread().sleep(200);
+			} catch (InterruptedException e1) {
+				e1.printStackTrace();
+			}
+			if(i == 20) {
+				flag = true;
+				this.notify();
+				try {
+					this.wait();
+				} catch (InterruptedException e) {
+					e.printStackTrace();
+				}
+			}
+		}
+		
+	}
+	//吃包子这个动作的方法
+	public synchronized void eat() {
+		if(!flag) {
+			try {
+				this.wait();
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+			}
+		}
+		for(int i = 3;i > 0;) {
+			i--;
+			System.out.println(Thread.currentThread().getName()+"========>"+"剩余的包子"+"=====>"+i);
+			try {
+				Thread.currentThread().sleep(300);
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+			}
+		}
+		this.notify();
+		
+	}
+	
+}
+//Runnable接口的具体实现类	，用来创建运行生产玩具的线程
+class product implements Runnable{
+		private people p;
+		
+		public product(people p) {
+			this.p = p;
+		}
+	
+		@Override
+		public void run() {
+			p.addPlayTool();
+		}
+	
+}
+//Runnable接口的具体实现类，用来创建运行吃包子的线程
+class runeat implements Runnable{
+		private people p;
+	
+		public runeat(people p) {
+	
+			this.p = p;
+		}
+	
+		@Override
+		public void run() {
+				p.eat();
+				}
+	
+}
