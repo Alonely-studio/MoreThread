@@ -1,0 +1,213 @@
+
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileReader;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.io.PrintWriter;
+import java.io.Reader;
+import java.io.Writer;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Set;
+
+
+public class movieSellSystem {
+	public static void main(String[] args) {
+		
+		//对map集合中的数据按照value值降序排列
+		Map<String, Double> map = getAllMoney();
+		Set<Map.Entry<String, Double>> set=map.entrySet();
+		//将set集合中的数据保存到list集合中
+		List<Map.Entry<String, Double>> list=new ArrayList<Map.Entry<String, Double>>(set);
+		//使用匿名内部类对list集合排序，采用构造器排序
+		Collections.sort(list, new Comparator<Map.Entry<String, Double>>() {
+
+			@Override
+			public int compare(Entry<String, Double> o1, Entry<String, Double> o2) {
+				return (int) (o2.getValue()-o1.getValue());
+			}
+		});
+		//排序完成之后，输出list集合到文件
+		printToTxt(list);
+	
+	}
+	
+	//定义一个方法，获取每个顾客的消费总额（map集合，当中存放了每个顾客的消费信息）
+	/*
+	 * 为了方便调用，定义为静态方法
+	 * 返回值类型为map集合 key---人名   value----该顾客的消费总额
+	 * 参数：无参数
+	 */
+	public static Map<String, Double> getAllMoney(){
+		//定义一个map集合，用来存放获得的数据
+		Map<String,Double> map = new HashMap<String, Double>();
+		File file1 = new File("/Users/sun/Desktop/Java/练习/一阶段综合上级练习题/consumption.txt");
+		//由于读数据需要一行一行的读，定义一个字符缓冲流，用来读取consumption.txt中的数据
+		BufferedReader bread = null;
+		try {
+			bread = new BufferedReader(new FileReader(file1));
+			//使用循环逐行读取数据
+			String str;
+			while((str = bread.readLine()) != null) {	//str指向读取的数据
+				String name = str.split(",")[0];		//姓名
+				String dateStr = str.split(",")[1];		//日期字符串形式
+				Double price = Double.parseDouble(str.split(",")[2]);		//价格
+				int num = Integer.parseInt(str.split(",")[3]);		//票的个数
+				//定义一个变量，用来存放总得金额
+				Double allMoney = price*num;
+				//为了更好的维护和修改代码，定义一个方法，用来判断当前对象的日期是不是周二
+				boolean isTuseday = isTuesday(dateStr);
+				//定义一个方法，获取当前对象的会员信息
+				String vipType = vipType(name);
+				if(isTuseday) {
+					if("金卡".equals(vipType)) {
+						name = name +"<"+vipType+">";
+						if(num > 1) {
+							allMoney = allMoney*0.5 -20;
+						}else {
+							allMoney = allMoney*0.5;
+						}
+					}else if("银卡".equals(vipType)) {
+						name = name +"<"+vipType+">";
+						allMoney = allMoney*0.5;
+					}else {
+						allMoney = allMoney*0.5;
+					}
+				}else {
+					if("金卡".equals(vipType)) {
+						name = name +"<"+vipType+">";
+						if(num > 1) {
+							allMoney = allMoney*0.75 -20;
+						}else {
+							allMoney = allMoney*0.75;
+						}
+					}else if("银卡".equals(vipType)) {
+						name = name +"<"+vipType+">";
+						allMoney = allMoney*0.75;
+					}else {
+						allMoney = allMoney;
+					}
+				}
+				//判断当前对象是否存在与map集合中
+				if(map.containsKey(name)) {
+					map.put(name, map.get(name)+allMoney);
+				}else {
+					map.put(name, allMoney);
+				}
+				
+				
+			}
+			
+		} catch (FileNotFoundException e) {
+			e.printStackTrace();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}finally {
+			if(bread != null) {
+				try {
+					bread.close();
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
+			}
+		}
+		return map;
+	}
+	
+	//定义一个方法，用来判断当前日期是不是周二
+	//定义一个方法，用来判断日期字符串是否是周二
+	/*
+	 * 为了调用方便，该方法定义为静态方法
+	 * 返回值类型为boolean类型
+	 * 因为上个方法中的日期还是日期字符串，所以这个方法的参数设置为String dateStr 
+	 * 
+	 */
+	public static boolean isTuesday(String dateStr) {
+		//首先将String类型的字符串转换为Date类型
+		SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
+		try {
+			Date date = sdf.parse(dateStr);
+			//获取一个Calendar对象，Calendar是一个抽象类，不能被实例化，只能调用getInstance()方法来获取一个Calendar对象
+			Calendar cal = Calendar.getInstance();
+			//将date对象转换为Calender对象
+			cal.setTime(date);
+			//判断是否是周二
+			return cal.get(Calendar.DAY_OF_WEEK) == 3;		//	Calendar.DAY_OF_WEEK是calendar中的静态常量，3代表周二
+		} catch (ParseException e) {
+			e.printStackTrace();
+		}
+		return false;
+	}
+	//定义一个方法，获取一个顾客的会员信息
+	/*
+	 * 为了方便调用，该方法也设置为静态方法
+	 * 返回值类型设置为String类型，金卡会员返回金卡，银卡会员返回银卡，非会员返回null
+	 * 参数为String类型，将当前对象的姓名传进去
+	 * 
+	 */
+	public static String vipType(String name) {
+		//这个方法中需要知道会员信息，所以创建一个输入流对象来读取vip.txt的信息
+		File file2 = new File("/Users/sun/Desktop/Java/练习/一阶段综合上级练习题/vip.txt");
+		//数据的读入也是整行读入，所以采用缓冲输入流
+		BufferedReader bread = null;
+		try {
+			bread = new BufferedReader(new FileReader(file2));
+			String str;
+			while((str = bread.readLine()) != null) {
+				if(name.equals((str.split(",")[0]))) {
+					//代码执行到当前行的时候，表明已经得到当前对象的会员信息，结束该方法
+					return str.split(",")[1];			//会员卡等级
+				}
+			}
+		} catch (FileNotFoundException e) {
+			e.printStackTrace();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}finally {
+			if(bread != null) {
+				try {
+					bread.close();
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
+			}
+		}
+		//如果前面的循环执行完还没有返回，证明该对像不是会员，返回null
+		return null;		
+	}
+	//定义一个方法，输出list集合到文件当中
+	/*
+	 * 为了方便调用，该方法也设置为静态方法
+	 * 该方法只是输出list集合到问价当中，所以不用设置返回值类型
+	 * 输出list集合，所以参数是一个list集合
+	 */
+	public static void printToTxt(List<Map.Entry<String, Double>> list) {
+		PrintWriter pw=null;
+		try {
+			pw=new PrintWriter("/Users/sun/Desktop/Java/练习/一阶段综合上级练习题/result.txt");
+			for(Map.Entry<String, Double> entry:list){
+				pw.println(entry.getKey()+","+entry.getValue());
+			}
+		} catch (FileNotFoundException e) {
+			e.printStackTrace();
+		}finally{
+			if(pw!=null){
+				pw.close();
+			}
+		}
+	}
+
+}
